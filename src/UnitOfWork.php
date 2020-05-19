@@ -8,10 +8,10 @@ use Doctrine\KeyValueStore\Id\CompositeIdHandler;
 use Doctrine\KeyValueStore\Id\IdConverterStrategy;
 use Doctrine\KeyValueStore\Id\IdHandlingStrategy;
 use Doctrine\KeyValueStore\Id\SingleIdHandler;
-use Doctrine\KeyValueStore\Mapping\ClassMetadata;
 use Doctrine\KeyValueStore\NotFoundException;
 use Doctrine\KeyValueStore\Storage\Storage;
 use Doctrine\Persistence\Mapping\MappingException;
+use Upscale\Doctrine\ODM\Mapping\DocumentMetadata;
 use Upscale\Doctrine\ODM\Mapping\DocumentMetadataFactory;
 
 class UnitOfWork
@@ -98,12 +98,12 @@ class UnitOfWork
     }
 
     /**
-     * @param ClassMetadata $class
+     * @param DocumentMetadata $class
      * @param string|array $id
      * @param array $data
      * @return object
      */
-    public function createEntity(ClassMetadata $class, $id, array $data)
+    public function createEntity(DocumentMetadata $class, $id, array $data)
     {
         $idHash = $this->idHandler->hash($id);
         if (isset($this->identityMap[$class->name][$idHash])) {
@@ -117,6 +117,7 @@ class UnitOfWork
         $data = $this->idConverter->unserialize($class, $data);
 
         foreach ($data as $fieldName => $value) {
+            $fieldName = $class->restoreFieldName($fieldName);
             if (isset($class->reflFields[$fieldName])) {
                 $class->reflFields[$fieldName]->setValue($object, $value);
             }
@@ -129,11 +130,11 @@ class UnitOfWork
     }
 
     /**
-     * @param ClassMetadata $class
+     * @param DocumentMetadata $class
      * @param object $object
      * @return array
      */
-    private function computeChangeSet(ClassMetadata $class, $object): array
+    private function computeChangeSet(DocumentMetadata $class, $object): array
     {
         $result = [];
         $snapshot = $this->getObjectSnapshot($class, $object);
@@ -150,14 +151,15 @@ class UnitOfWork
     }
 
     /**
-     * @param ClassMetadata $class
+     * @param DocumentMetadata $class
      * @param object $object
      * @return array
      */
-    private function getObjectSnapshot(ClassMetadata $class, $object)
+    private function getObjectSnapshot(DocumentMetadata $class, $object)
     {
         $result = [];
         foreach ($class->reflFields as $fieldName => $reflProperty) {
+            $fieldName = $class->resolveFieldName($fieldName);
             $result[$fieldName] = $reflProperty->getValue($object);
         }
         return $result;

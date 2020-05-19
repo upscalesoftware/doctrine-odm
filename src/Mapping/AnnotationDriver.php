@@ -25,7 +25,8 @@ class AnnotationDriver implements MappingDriver
     }
 
     /**
-     * {@inheritdoc}
+     * @param string $className
+     * @param DocumentMetadata $metadata
      */
     public function loadMetadataForClass($className, ClassMetadata $metadata)
     {
@@ -46,6 +47,7 @@ class AnnotationDriver implements MappingDriver
                 }
                 $metadata->mapField([
                     'fieldName' => $fieldName,
+                    'name' => $fieldInfo->name,
                 ]);
             }
         }

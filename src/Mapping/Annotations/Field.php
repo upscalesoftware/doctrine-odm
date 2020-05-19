@@ -9,5 +9,8 @@ namespace Upscale\Doctrine\ODM\Mapping\Annotations;
  */
 final class Field
 {
-
+    /**
+     * @var string
+     */
+    public $name;
 }
