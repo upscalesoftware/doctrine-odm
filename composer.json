@@ -13,6 +13,7 @@
     ],
     "require": {
         "php": ">=7.1",
+        "ext-json": "*",
         "doctrine/key-value-store": "^0.4"
     },
     "autoload": {
