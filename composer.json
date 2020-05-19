@@ -1,0 +1,21 @@
+{
+    "name": "upscale/doctrine-odm",
+    "description": "Doctrine Object Document Mapper (ODM)",
+    "version": "1.0.0",
+    "keywords": ["Doctrine", "ODM", "document", "mapper"],
+    "homepage": "https://github.com/upscalesoftware/doctrine-odm",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "Upscale Software Team",
+            "email": "info@upscalesoftware.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.1",
+        "doctrine/key-value-store": "^0.4"
+    },
+    "autoload": {
+        "psr-4": {"Upscale\\Doctrine\\ODM\\": "src/"}
+    }
+}
