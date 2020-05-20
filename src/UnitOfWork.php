@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Upscale\Doctrine\ODM;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\KeyValueStore\Configuration;
 use Doctrine\KeyValueStore\Id\CompositeIdHandler;
 use Doctrine\KeyValueStore\Id\IdConverterStrategy;
@@ -118,6 +119,21 @@ class UnitOfWork
 
         foreach ($data as $fieldName => $value) {
             $fieldName = $class->restoreFieldName($fieldName);
+            if ($value !== null && $class->hasAssociation($fieldName)) {
+                $assocClassName = $class->getAssociationTargetClass($fieldName);
+                $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
+                if ($class->isSingleValuedAssociation($fieldName)) {
+                    $idData = $assocClass->restoreFieldNames($value);
+                    $value = $this->reconstitute($assocClassName, $idData);
+                } else if ($class->isCollectionValuedAssociation($fieldName)) {
+                    $items = [];
+                    foreach ($value as $idData) {
+                        $idData = $assocClass->restoreFieldNames($idData);
+                        $items[] = $this->reconstitute($assocClassName, $idData);
+                    }
+                    $value = new ArrayCollection($items);
+                }
+            }
             if (isset($class->reflFields[$fieldName])) {
                 $class->reflFields[$fieldName]->setValue($object, $value);
             }
@@ -159,8 +175,26 @@ class UnitOfWork
     {
         $result = [];
         foreach ($class->reflFields as $fieldName => $reflProperty) {
+            $value = $reflProperty->getValue($object);
+            if ($value !== null && $class->hasAssociation($fieldName)) {
+                $assocClassName = $class->getAssociationTargetClass($fieldName);
+                $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
+                if ($class->isSingleValuedAssociation($fieldName)) {
+                    $idData = $assocClass->getIdentifierValues($value);
+                    $idData = $assocClass->resolveFieldNames($idData);
+                    $value = $idData;
+                } else if ($class->isCollectionValuedAssociation($fieldName)) {
+                    $items = [];
+                    foreach ($value as $item) {
+                        $idData = $assocClass->getIdentifierValues($item);
+                        $idData = $assocClass->resolveFieldNames($idData);
+                        $items[] = $idData;
+                    }
+                    $value = $items;
+                }
+            }
             $fieldName = $class->resolveFieldName($fieldName);
-            $result[$fieldName] = $reflProperty->getValue($object);
+            $result[$fieldName] = $value;
         }
         return $result;
     }
@@ -187,6 +221,10 @@ class UnitOfWork
 
         if (isset($this->identityMap[$class->name][$idHash])) {
             throw new \RuntimeException('Document with the same identifier already exists.');
+        }
+
+        foreach ($class->getAssociationValues($object) as $assocObject) {
+            $this->scheduleForInsert($assocObject);
         }
 
         $this->scheduledInsertions[$oid] = $object;
