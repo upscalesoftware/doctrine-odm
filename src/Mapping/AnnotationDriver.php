@@ -39,27 +39,24 @@ class AnnotationDriver implements MappingDriver
         $metadata->storageName = $documentInfo->collection;
 
         foreach ($class->getProperties() as $property) {
-            $fieldInfo = $this->reader->getPropertyAnnotation($property, Annotations\Field::class);
-            if ($fieldInfo instanceof Annotations\Field) {
-                $fieldName = $property->getName();
-                $assocInfo = $this->reader->getPropertyAnnotation($property, Annotations\Reference::class);
-                if ($this->reader->getPropertyAnnotation($property, Annotations\Id::class)) {
+            $fieldName = $property->getName();
+            $mapping = ['fieldName' => $fieldName];
+            foreach ($this->reader->getPropertyAnnotations($property) as $annotation) {
+                if ($annotation instanceof Annotations\Id) {
+                    $mapping += ['id' => true];
                     $metadata->mapIdentifier($fieldName);
-                } else if ($assocInfo instanceof Annotations\ReferenceOne) {
-                    $metadata->mapManyToOne([
-                        'fieldName' => $fieldName,
-                        'targetDocument' => $assocInfo->targetDocument,
-                    ]);
-                } else if ($assocInfo instanceof Annotations\ReferenceMany) {
-                    $metadata->mapManyToMany([
-                        'fieldName' => $fieldName,
-                        'targetDocument' => $assocInfo->targetDocument,
-                    ]);
+                } else if ($annotation instanceof Annotations\Field) {
+                    $mapping += (array)$annotation;
+                } else if ($annotation instanceof Annotations\ReferenceOne) {
+                    $mapping += (array)$annotation;
+                    $metadata->mapManyToOne($mapping);
+                } else if ($annotation instanceof Annotations\ReferenceMany) {
+                    $mapping += (array)$annotation;
+                    $metadata->mapManyToMany($mapping);
                 }
-                $metadata->mapField([
-                    'fieldName' => $fieldName,
-                    'name' => $fieldInfo->name,
-                ]);
+            }
+            if (count($mapping) > 1) {
+                $metadata->mapField($mapping);
             }
         }
     }
