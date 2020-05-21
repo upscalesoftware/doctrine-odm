@@ -116,9 +116,9 @@ class UnitOfWork
         $oid = spl_object_hash($object);
         $this->originalData[$oid] = $data;
         $data = $this->idConverter->unserialize($class, $data);
+        $data = $class->restoreFieldNames($data);
 
         foreach ($data as $fieldName => $value) {
-            $fieldName = $class->restoreFieldName($fieldName);
             if ($value !== null && $class->hasAssociation($fieldName)) {
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
@@ -193,9 +193,9 @@ class UnitOfWork
                     $value = $items;
                 }
             }
-            $fieldName = $class->resolveFieldName($fieldName);
             $result[$fieldName] = $value;
         }
+        $result = $class->resolveFieldNames($result);
         return $result;
     }
 

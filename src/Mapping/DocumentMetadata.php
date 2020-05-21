@@ -68,7 +68,7 @@ class DocumentMetadata extends ClassMetadata
      * @param string $fieldName
      * @return string
      */
-    public function resolveFieldName(string $fieldName): string
+    protected function resolveFieldName(string $fieldName): string
     {
         return $this->fields[$fieldName]['name'] ?? $fieldName;
     }
@@ -77,7 +77,7 @@ class DocumentMetadata extends ClassMetadata
      * @param string $mappedName
      * @return string
      */
-    public function restoreFieldName(string $mappedName): string
+    protected function restoreFieldName(string $mappedName): string
     {
         return $this->fieldNames[$mappedName] ?? $mappedName;
     }
