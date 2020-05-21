@@ -36,6 +36,9 @@ class EntityManager
         if (!$typeManager) {
             $typeManager = new TypeManager([
                 'boolean'   => new Types\BooleanType(),
+                'date'      => new Types\DateTimeType(Types\DateTimeType::DATE),
+                'time'      => new Types\DateTimeType(Types\DateTimeType::TIME),
+                'datetime'  => new Types\DateTimeType(),
                 'float'     => new Types\FloatType(),
                 'integer'   => new Types\IntegerType(),
                 'mixed'     => new Types\MixedType(),
