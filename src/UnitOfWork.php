@@ -104,7 +104,7 @@ class UnitOfWork
         $class = $this->metadataFactory->getMetadataFor($className);
         $id = $this->idHandler->normalizeId($class, $key);
         $data = $this->storageDriver->find($class->storageName, $id);
-        return $this->createEntity($class, $id, $data);
+        return $this->createDocument($class, $id, $data);
     }
 
     /**
@@ -112,8 +112,11 @@ class UnitOfWork
      * @param string|array $id
      * @param array $data
      * @return object
+     * @throws MappingException
+     * @throws NotFoundException
+     * @throws \ReflectionException
      */
-    public function createEntity(DocumentMetadata $class, $id, array $data)
+    public function createDocument(DocumentMetadata $class, $id, array $data)
     {
         $idHash = $this->idHandler->hash($id);
         if (isset($this->identityMap[$class->name][$idHash])) {

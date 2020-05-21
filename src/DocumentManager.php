@@ -11,7 +11,7 @@ use Doctrine\Persistence\Mapping\MappingException;
 use Upscale\Doctrine\ODM\Mapping\DocumentMetadataFactory;
 use Upscale\Doctrine\ODM\Types\TypeManager;
 
-class EntityManager
+class DocumentManager
 {
     /**
      * @var UnitOfWork
