@@ -9,6 +9,7 @@ use Doctrine\KeyValueStore\NotFoundException;
 use Doctrine\KeyValueStore\Storage\Storage;
 use Doctrine\Persistence\Mapping\MappingException;
 use Upscale\Doctrine\ODM\Mapping\DocumentMetadataFactory;
+use Upscale\Doctrine\ODM\Types\TypeManager;
 
 class EntityManager
 {
@@ -27,14 +28,25 @@ class EntityManager
      *
      * @param Storage $storageDriver
      * @param Configuration $config
+     * @param TypeManager|null $typeManager
      * @throws KeyValueStoreException
      */
-    public function __construct(Storage $storageDriver, Configuration $config)
+    public function __construct(Storage $storageDriver, Configuration $config, TypeManager $typeManager = null)
     {
+        if (!$typeManager) {
+            $typeManager = new TypeManager([
+                'boolean'   => new Types\BooleanType(),
+                'float'     => new Types\FloatType(),
+                'integer'   => new Types\IntegerType(),
+                'mixed'     => new Types\MixedType(),
+                'string'    => new Types\StringType(),
+            ]);
+        }
+        
         $metadataFactory = new DocumentMetadataFactory($config->getMappingDriverImpl());
         $metadataFactory->setCacheDriver($config->getMetadataCache());
 
-        $this->unitOfWork = new UnitOfWork($metadataFactory, $storageDriver, $config);
+        $this->unitOfWork = new UnitOfWork($metadataFactory, $storageDriver, $typeManager, $config);
         $this->storageDriver = $storageDriver;
     }
 

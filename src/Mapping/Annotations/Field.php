@@ -13,4 +13,9 @@ final class Field
      * @var string
      */
     public $name;
+
+    /**
+     * @var string
+     */
+    public $type;
 }

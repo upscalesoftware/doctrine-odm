@@ -65,10 +65,18 @@ class DocumentMetadata extends ClassMetadata
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function getTypeOfField($fieldName)
+    {
+        return $this->fields[$fieldName]['type'] ?? 'mixed';
+    }
+
+    /**
      * @param string $fieldName
      * @return string
      */
-    protected function resolveFieldName(string $fieldName): string
+    public function resolveFieldName(string $fieldName): string
     {
         return $this->fields[$fieldName]['name'] ?? $fieldName;
     }
@@ -77,37 +85,9 @@ class DocumentMetadata extends ClassMetadata
      * @param string $mappedName
      * @return string
      */
-    protected function restoreFieldName(string $mappedName): string
+    public function restoreFieldName(string $mappedName): string
     {
         return $this->fieldNames[$mappedName] ?? $mappedName;
-    }
-
-    /**
-     * @param array $data
-     * @return array
-     */
-    public function resolveFieldNames(array $data): array
-    {
-        $result = [];
-        foreach ($data as $fieldName => $value) {
-            $fieldName = $this->resolveFieldName($fieldName);
-            $result[$fieldName] = $value;
-        }
-        return $result;
-    }
-
-    /**
-     * @param array $data
-     * @return array
-     */
-    public function restoreFieldNames(array $data): array
-    {
-        $result = [];
-        foreach ($data as $mappedName => $value) {
-            $fieldName = $this->restoreFieldName($mappedName);
-            $result[$fieldName] = $value;
-        }
-        return $result;
     }
 
     /**

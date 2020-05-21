@@ -14,6 +14,7 @@ use Doctrine\KeyValueStore\Storage\Storage;
 use Doctrine\Persistence\Mapping\MappingException;
 use Upscale\Doctrine\ODM\Mapping\DocumentMetadata;
 use Upscale\Doctrine\ODM\Mapping\DocumentMetadataFactory;
+use Upscale\Doctrine\ODM\Types\TypeManager;
 
 class UnitOfWork
 {
@@ -26,6 +27,11 @@ class UnitOfWork
      * @var Storage
      */
     private $storageDriver;
+
+    /**
+     * @var TypeManager
+     */
+    private $typeManager;
 
     /**
      * @var IdConverterStrategy
@@ -67,15 +73,18 @@ class UnitOfWork
      * 
      * @param DocumentMetadataFactory $metadataFactory
      * @param Storage $storageDriver
+     * @param TypeManager $typeManager
      * @param Configuration $config
      */
     public function __construct(
         DocumentMetadataFactory $metadataFactory,
         Storage $storageDriver,
+        TypeManager $typeManager,
         Configuration $config
     ) {
         $this->metadataFactory = $metadataFactory;
         $this->storageDriver = $storageDriver;
+        $this->typeManager = $typeManager;
         $this->idConverter = $config->getIdConverterStrategy();
         $this->idHandler = $storageDriver->supportsCompositePrimaryKeys()
             ? new CompositeIdHandler()
@@ -116,19 +125,19 @@ class UnitOfWork
         $oid = spl_object_hash($object);
         $this->originalData[$oid] = $data;
         $data = $this->idConverter->unserialize($class, $data);
-        $data = $class->restoreFieldNames($data);
+        $data = $this->unserializeData($class, $data);
 
         foreach ($data as $fieldName => $value) {
             if ($value !== null && $class->hasAssociation($fieldName)) {
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
                 if ($class->isSingleValuedAssociation($fieldName)) {
-                    $idData = $assocClass->restoreFieldNames($value);
+                    $idData = $this->unserializeData($assocClass, $value);
                     $value = $this->reconstitute($assocClassName, $idData);
                 } else if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
                     foreach ($value as $idData) {
-                        $idData = $assocClass->restoreFieldNames($idData);
+                        $idData = $this->unserializeData($assocClass, $idData);
                         $items[] = $this->reconstitute($assocClassName, $idData);
                     }
                     $value = new ArrayCollection($items);
@@ -181,13 +190,13 @@ class UnitOfWork
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
                 if ($class->isSingleValuedAssociation($fieldName)) {
                     $idData = $assocClass->getIdentifierValues($value);
-                    $idData = $assocClass->resolveFieldNames($idData);
+                    $idData = $this->serializeData($assocClass, $idData);
                     $value = $idData;
                 } else if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
                     foreach ($value as $item) {
                         $idData = $assocClass->getIdentifierValues($item);
-                        $idData = $assocClass->resolveFieldNames($idData);
+                        $idData = $this->serializeData($assocClass, $idData);
                         $items[] = $idData;
                     }
                     $value = $items;
@@ -195,7 +204,41 @@ class UnitOfWork
             }
             $result[$fieldName] = $value;
         }
-        $result = $class->resolveFieldNames($result);
+        $result = $this->serializeData($class, $result);
+        return $result;
+    }
+
+    /**
+     * @param DocumentMetadata $class
+     * @param array $data
+     * @return array
+     */
+    private function serializeData(DocumentMetadata $class, array $data): array
+    {
+        $result = [];
+        foreach ($data as $fieldName => $value) {
+            $fieldType = $class->getTypeOfField($fieldName);
+            $fieldName = $class->resolveFieldName($fieldName);
+            $fieldValue = $this->typeManager->get($fieldType)->convertToDBValue($value);
+            $result[$fieldName] = $fieldValue;
+        }
+        return $result;
+    }
+
+    /**
+     * @param DocumentMetadata $class
+     * @param array $data
+     * @return array
+     */
+    private function unserializeData(DocumentMetadata $class, array $data): array
+    {
+        $result = [];
+        foreach ($data as $mappedName => $value) {
+            $fieldName = $class->restoreFieldName($mappedName);
+            $fieldType = $class->getTypeOfField($fieldName);
+            $fieldValue = $this->typeManager->get($fieldType)->convertToPHPValue($value);
+            $result[$fieldName] = $fieldValue;
+        }
         return $result;
     }
 
