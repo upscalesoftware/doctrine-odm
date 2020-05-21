@@ -42,6 +42,11 @@ class DateTimeType implements Type
      */
     public function convertToPHPValue($value)
     {
-        return \DateTimeImmutable::createFromFormat($this->format, (string)$value);
+        /**
+         * Parse 3-digit milliseconds using 6-digit format as a workaround
+         * @link https://www.php.net/manual/en/datetime.createfromformat.php
+         */
+        $format = strtr($this->format, ['\v' => '\v', 'v' => 'u']);
+        return \DateTimeImmutable::createFromFormat($format, (string)$value);
     }
 }
