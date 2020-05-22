@@ -225,6 +225,14 @@ echo json_encode($storage, JSON_PRETTY_PRINT);
 }
 ```
 
+## Limitations
+
+- Only DocBlock metadata driver is currently implemented
+- Query by arbitrary criteria is not implemented yet
+- Bidirectional associations are currently not supported
+- One-to-One and One-to-Many associations are not supported
+- Lazy loading of associated documents is not implemented
+
 ## Contributing
 
 Pull Requests with fixes and improvements are welcome!
