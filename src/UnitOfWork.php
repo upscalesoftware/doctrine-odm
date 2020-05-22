@@ -279,10 +279,6 @@ class UnitOfWork
 
         $class = $this->metadataFactory->getMetadataFor(get_class($object));
         $id = $this->idHandler->getIdentifier($class, $object);
-        if (!$id) {
-            throw new \RuntimeException('Cannot persist document without identifier.');
-        }
-
         $idHash = $this->idHandler->hash($id);
 
         if (isset($this->identityMap[$class->name][$idHash])) {

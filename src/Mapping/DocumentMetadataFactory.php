@@ -29,6 +29,27 @@ class DocumentMetadataFactory extends ClassMetadataFactory
     }
 
     /**
+     * @param DocumentMetadata $class
+     * @param DocumentMetadata|null $parent
+     * @param bool $rootEntityFound
+     * @param string[] $nonSuperclassParents
+     * @throws \InvalidArgumentException
+     */
+    protected function doLoadMetadata($class, $parent, $rootEntityFound, array $nonSuperclassParents)
+    {
+        try {
+            parent::doLoadMetadata($class, $parent, $rootEntityFound, $nonSuperclassParents);
+        } catch (\InvalidArgumentException $e) {
+            if (!$class->embedded && !$class->identifier) {
+                throw new \InvalidArgumentException("Document '{$class->name}' must have identifier.");
+            }
+        }
+        if ($class->embedded && $class->identifier) {
+            throw new \InvalidArgumentException("Embedded document '{$class->name}' cannot have identifier.");
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected function newClassMetadataInstance($className)
