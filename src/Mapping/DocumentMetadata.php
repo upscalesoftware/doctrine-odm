@@ -33,6 +33,11 @@ class DocumentMetadata extends ClassMetadata
     public $namespace;
 
     /**
+     * @var bool
+     */
+    public $embedded = false;
+
+    /**
      * @var string[]
      */
     public $fieldNames = [];
@@ -207,6 +212,7 @@ class DocumentMetadata extends ClassMetadata
     public function __sleep()
     {
         $fields = parent::__sleep();
+        $fields[] = 'embedded';
         $fields[] = 'fieldNames';
         $fields[] = 'associations';
         return $fields;

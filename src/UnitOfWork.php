@@ -122,7 +122,26 @@ class UnitOfWork
         if (isset($this->identityMap[$class->name][$idHash])) {
             return $this->identityMap[$class->name][$idHash];
         }
+        
+        $object = $this->hydrateDocument($class, $data);
+        
+        $oid = spl_object_hash($object);
+        $this->identityMap[$class->name][$idHash] = $object;
+        $this->identifiers[$oid] = $id;
+        
+        return $object;
+    }
 
+    /**
+     * @param DocumentMetadata $class
+     * @param array $data
+     * @return object
+     * @throws MappingException
+     * @throws NotFoundException
+     * @throws \ReflectionException
+     */
+    protected function hydrateDocument(DocumentMetadata $class, array $data)
+    {
         $object = $class->newInstance();
 
         $oid = spl_object_hash($object);
@@ -135,13 +154,15 @@ class UnitOfWork
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
                 if ($class->isSingleValuedAssociation($fieldName)) {
-                    $idData = $this->unserializeData($assocClass, $value);
-                    $value = $this->reconstitute($assocClassName, $idData);
+                    $value = $assocClass->embedded
+                        ? $this->hydrateDocument($assocClass, $value)
+                        : $this->reconstitute($assocClassName, $this->unserializeData($assocClass, $value));
                 } else if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
-                    foreach ($value as $idData) {
-                        $idData = $this->unserializeData($assocClass, $idData);
-                        $items[] = $this->reconstitute($assocClassName, $idData);
+                    foreach ($value as $assocData) {
+                        $items[] = $assocClass->embedded
+                            ? $this->hydrateDocument($assocClass, $assocData)
+                            : $this->reconstitute($assocClassName, $this->unserializeData($assocClass, $assocData));
                     }
                     $value = new ArrayCollection($items);
                 }
@@ -150,9 +171,6 @@ class UnitOfWork
                 $class->reflFields[$fieldName]->setValue($object, $value);
             }
         }
-
-        $this->identityMap[$class->name][$idHash] = $object;
-        $this->identifiers[$oid] = $id;
 
         return $object;
     }
@@ -192,15 +210,17 @@ class UnitOfWork
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
                 if ($class->isSingleValuedAssociation($fieldName)) {
-                    $idData = $assocClass->getIdentifierValues($value);
-                    $idData = $this->serializeData($assocClass, $idData);
-                    $value = $idData;
+                    $assocData = $assocClass->embedded
+                        ? $this->getObjectSnapshot($assocClass, $value)
+                        : $assocClass->getIdentifierValues($value);
+                    $value = $this->serializeData($assocClass, $assocData);
                 } else if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
                     foreach ($value as $item) {
-                        $idData = $assocClass->getIdentifierValues($item);
-                        $idData = $this->serializeData($assocClass, $idData);
-                        $items[] = $idData;
+                        $assocData = $assocClass->embedded
+                            ? $this->getObjectSnapshot($assocClass, $item)
+                            : $assocClass->getIdentifierValues($item);
+                        $items[] = $this->serializeData($assocClass, $assocData);
                     }
                     $value = $items;
                 }
@@ -269,8 +289,12 @@ class UnitOfWork
             throw new \RuntimeException('Document with the same identifier already exists.');
         }
 
-        foreach ($class->getAssociationValues($object) as $assocObject) {
-            $this->scheduleForInsert($assocObject);
+        foreach ($class->getAssociationValues($object) as $assocName => $assocObject) {
+            $assocClassName = $class->getAssociationTargetClass($assocName);
+            $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
+            if (!$assocClass->embedded) {
+                $this->scheduleForInsert($assocObject);
+            }
         }
 
         $this->scheduledInsertions[$oid] = $object;

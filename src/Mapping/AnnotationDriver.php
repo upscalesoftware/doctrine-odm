@@ -32,11 +32,14 @@ class AnnotationDriver implements MappingDriver
     {
         $class = $metadata->getReflectionClass();
 
+        $metadata->embedded = (bool)$this->reader->getClassAnnotation($class, Annotations\EmbeddedDocument::class);
+        
         $documentInfo = $this->reader->getClassAnnotation($class, Annotations\Document::class);
-        if (!$documentInfo instanceof Annotations\Document) {
+        if ($documentInfo instanceof Annotations\Document && !$metadata->embedded) {
+            $metadata->storageName = $documentInfo->collection;
+        } else if (!$metadata->embedded) {
             throw new \InvalidArgumentException("Class '{$metadata->getName()}' is not a valid document.");
         }
-        $metadata->storageName = $documentInfo->collection;
 
         foreach ($class->getProperties() as $property) {
             $fieldName = $property->getName();
