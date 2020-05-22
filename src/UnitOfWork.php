@@ -275,6 +275,9 @@ class UnitOfWork
         $class = $this->metadataFactory->getMetadataFor(get_class($object));
         
         foreach ($class->getAssociationValues($object) as $assocName => $assocObject) {
+            if ($class->isAssociationInverseSide($assocName)) {
+                continue;
+            }
             if ($class->isSingleValuedAssociation($assocName)) {
                 $this->scheduleForInsert($assocObject);
             } else if ($class->isCollectionValuedAssociation($assocName)) {
