@@ -272,25 +272,28 @@ class UnitOfWork
      */
     public function scheduleForInsert($object)
     {
-        $oid = spl_object_hash($object);
-        if (isset($this->identifiers[$oid])) {
-            return;
+        $class = $this->metadataFactory->getMetadataFor(get_class($object));
+        
+        foreach ($class->getAssociationValues($object) as $assocName => $assocObject) {
+            if ($class->isSingleValuedAssociation($assocName)) {
+                $this->scheduleForInsert($assocObject);
+            } else if ($class->isCollectionValuedAssociation($assocName)) {
+                foreach ($assocObject as $item) {
+                    $this->scheduleForInsert($item);
+                }
+            }
         }
 
-        $class = $this->metadataFactory->getMetadataFor(get_class($object));
+        $oid = spl_object_hash($object);
+        if (isset($this->identifiers[$oid]) || $class->embedded) {
+            return;
+        }
+        
         $id = $this->idHandler->getIdentifier($class, $object);
         $idHash = $this->idHandler->hash($id);
 
         if (isset($this->identityMap[$class->name][$idHash])) {
             throw new \RuntimeException('Document with the same identifier already exists.');
-        }
-
-        foreach ($class->getAssociationValues($object) as $assocName => $assocObject) {
-            $assocClassName = $class->getAssociationTargetClass($assocName);
-            $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
-            if (!$assocClass->embedded) {
-                $this->scheduleForInsert($assocObject);
-            }
         }
 
         $this->scheduledInsertions[$oid] = $object;

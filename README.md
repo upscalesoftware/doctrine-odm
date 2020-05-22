@@ -188,6 +188,10 @@ echo json_encode($storage, JSON_PRETTY_PRINT);
         "sergey@shymko.net": {
             "email": "sergey@shymko.net",
             "name": "Sergii Shymko"
+        },
+        "john.doe@example.com": {
+            "email": "john.doe@example.com",
+            "name": "John Doe"
         }
     },
     "blog_posts": {
