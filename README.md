@@ -176,9 +176,15 @@ $dm->persist($article);
 $dm->flush();
 ```
 
+Delete the blog post:
+```php
+$dm->remove($article);
+$dm->flush();
+```
+
 ### Storage
 
-Inspect the data structure in the persistent storage:
+Inspect the data structure of the in-memory storage (before deletion):
 ```php
 echo json_encode($storage, JSON_PRETTY_PRINT);
 ```
