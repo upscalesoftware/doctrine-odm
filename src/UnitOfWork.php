@@ -210,17 +210,15 @@ class UnitOfWork
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
                 if ($class->isSingleValuedAssociation($fieldName)) {
-                    $assocData = $assocClass->embedded
+                    $value = $assocClass->embedded
                         ? $this->getObjectSnapshot($assocClass, $value)
-                        : $assocClass->getIdentifierValues($value);
-                    $value = $this->serializeData($assocClass, $assocData);
+                        : $this->serializeData($assocClass, $assocClass->getIdentifierValues($value));
                 } else if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
                     foreach ($value as $item) {
-                        $assocData = $assocClass->embedded
+                        $items[] = $assocClass->embedded
                             ? $this->getObjectSnapshot($assocClass, $item)
-                            : $assocClass->getIdentifierValues($item);
-                        $items[] = $this->serializeData($assocClass, $assocData);
+                            : $this->serializeData($assocClass, $assocClass->getIdentifierValues($item));
                     }
                     $value = $items;
                 }
