@@ -14,6 +14,16 @@ class MemoryStorage implements Storage, \JsonSerializable
     private $data = [];
 
     /**
+     * Inject dependencies
+     * 
+     * @param array $data
+     */
+    public function __construct(array $data = [])
+    {
+        $this->data = $data;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function supportsPartialUpdates()
