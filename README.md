@@ -133,7 +133,6 @@ class User
 
 The following boilerplate initializes the document manager:
 ```php
-use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\KeyValueStore\Configuration;
 use Upscale\Doctrine\ODM\DocumentManager;
@@ -144,7 +143,6 @@ $storage = new MemoryStorage();
 
 $config = new Configuration();
 $config->setMappingDriverImpl(new AnnotationDriver(new AnnotationReader()));
-$config->setMetadataCache(new ArrayCache);
 
 $dm = new DocumentManager($storage, $config);
 ```
