@@ -3,13 +3,11 @@ declare(strict_types=1);
 
 namespace Upscale\Doctrine\ODM;
 
-use Doctrine\KeyValueStore\Configuration;
 use Doctrine\KeyValueStore\KeyValueStoreException;
 use Doctrine\KeyValueStore\NotFoundException;
 use Doctrine\KeyValueStore\Storage\Storage;
 use Doctrine\Persistence\Mapping\MappingException;
 use Upscale\Doctrine\ODM\Mapping\DocumentMetadataFactory;
-use Upscale\Doctrine\ODM\Types\TypeManager;
 
 class DocumentManager
 {
@@ -28,28 +26,14 @@ class DocumentManager
      *
      * @param Storage $storageDriver
      * @param Configuration $config
-     * @param TypeManager|null $typeManager
      * @throws KeyValueStoreException
      */
-    public function __construct(Storage $storageDriver, Configuration $config, TypeManager $typeManager = null)
+    public function __construct(Storage $storageDriver, Configuration $config)
     {
-        if (!$typeManager) {
-            $typeManager = new TypeManager([
-                'boolean'   => new Types\BooleanType(),
-                'date'      => new Types\DateTimeType(Types\DateTimeType::DATE),
-                'time'      => new Types\DateTimeType(Types\DateTimeType::TIME),
-                'datetime'  => new Types\DateTimeType(),
-                'float'     => new Types\FloatType(),
-                'integer'   => new Types\IntegerType(),
-                'mixed'     => new Types\MixedType(),
-                'string'    => new Types\StringType(),
-            ]);
-        }
-        
         $metadataFactory = new DocumentMetadataFactory($config->getMappingDriverImpl());
         $metadataFactory->setCacheDriver($config->getMetadataCache());
 
-        $this->unitOfWork = new UnitOfWork($metadataFactory, $storageDriver, $typeManager, $config);
+        $this->unitOfWork = new UnitOfWork($metadataFactory, $storageDriver, $config->getTypeManager(), $config);
         $this->storageDriver = $storageDriver;
     }
 

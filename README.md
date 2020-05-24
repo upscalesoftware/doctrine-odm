@@ -134,7 +134,7 @@ class User
 The following boilerplate initializes the document manager:
 ```php
 use Doctrine\Common\Annotations\AnnotationReader;
-use Doctrine\KeyValueStore\Configuration;
+use Upscale\Doctrine\ODM\Configuration;
 use Upscale\Doctrine\ODM\DocumentManager;
 use Upscale\Doctrine\ODM\Mapping\AnnotationDriver;
 use Upscale\Doctrine\ODM\Storage\MemoryStorage;
