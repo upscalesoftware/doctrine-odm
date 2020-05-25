@@ -4,13 +4,19 @@ declare(strict_types=1);
 namespace Upscale\Doctrine\ODM;
 
 use Doctrine\KeyValueStore\KeyValueStoreException;
-use Doctrine\KeyValueStore\NotFoundException;
 use Doctrine\KeyValueStore\Storage\Storage;
 use Doctrine\Persistence\Mapping\MappingException;
+use Doctrine\Persistence\ObjectManager;
+use Upscale\Doctrine\ODM\Mapping\DocumentMetadata;
 use Upscale\Doctrine\ODM\Mapping\DocumentMetadataFactory;
 
-class DocumentManager
+class DocumentManager implements ObjectManager
 {
+    /**
+     * @var DocumentMetadataFactory
+     */
+    private $metadataFactory;
+    
     /**
      * @var UnitOfWork
      */
@@ -22,6 +28,11 @@ class DocumentManager
     private $storageDriver;
 
     /**
+     * @var DocumentRepository[]
+     */
+    private $repositories = [];
+
+    /**
      * Inject dependencies
      *
      * @param Storage $storageDriver
@@ -30,26 +41,75 @@ class DocumentManager
      */
     public function __construct(Storage $storageDriver, Configuration $config)
     {
-        $metadataFactory = new DocumentMetadataFactory($config->getMappingDriverImpl());
-        $metadataFactory->setCacheDriver($config->getMetadataCache());
+        $this->metadataFactory = new DocumentMetadataFactory($config->getMappingDriverImpl());
+        $this->metadataFactory->setCacheDriver($config->getMetadataCache());
 
-        $this->unitOfWork = new UnitOfWork($metadataFactory, $storageDriver, $config->getTypeManager(), $config);
+        $this->unitOfWork = new UnitOfWork($this->metadataFactory, $storageDriver, $config->getTypeManager(), $config);
         $this->storageDriver = $storageDriver;
+    }
+
+    /**
+     * @return UnitOfWork
+     */
+    public function getUnitOfWork()
+    {
+        return $this->unitOfWork;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getMetadataFactory()
+    {
+        return $this->metadataFactory;
+    }
+
+    /**
+     * @param string $className
+     * @return DocumentMetadata
+     * @throws MappingException
+     * @throws \ReflectionException
+     */
+    public function getClassMetadata($className)
+    {
+        return $this->metadataFactory->getMetadataFor($className);
+    }
+
+    /**
+     * @param string $className
+     * @return DocumentRepository
+     * @throws MappingException
+     * @throws \ReflectionException
+     */
+    public function getRepository($className)
+    {
+        if (!isset($this->repositories[$className])) {
+            $class = $this->getClassMetadata($className);
+            $this->repositories[$className] = new DocumentRepository($this->unitOfWork, $class);
+        }
+        return $this->repositories[$className];
     }
 
     /**
      * Fetch an object from persistent storage by its unique identifier
      *
      * @param string $className
-     * @param string|array $key
+     * @param string|array $id
      * @return object
      * @throws MappingException
-     * @throws NotFoundException
      * @throws \ReflectionException
      */
-    public function find(string $className, $key)
+    public function find($className, $id)
     {
-        return $this->unitOfWork->reconstitute($className, $key);
+        return $this->getRepository($className)->find($id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function contains($object)
+    {
+        return $this->unitOfWork->contains($object);
     }
 
     /**
@@ -87,9 +147,46 @@ class DocumentManager
 
     /**
      * Clear all pending changes to persistent storage
+     * 
+     * @param string|null $objectName
      */
-    public function clear()
+    public function clear($objectName = null)
     {
+        if ($objectName !== null) {
+            throw new \BadMethodCallException('Partial cleaning is not supported');
+        }
         $this->unitOfWork->clear();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function merge($object)
+    {
+        throw new \BadMethodCallException('Merging is not supported');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function detach($object)
+    {
+        throw new \BadMethodCallException('Detaching is not supported');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function refresh($object)
+    {
+        throw new \BadMethodCallException('Refreshing is not supported');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function initializeObject($obj)
+    {
+        // Do nothing
     }
 }

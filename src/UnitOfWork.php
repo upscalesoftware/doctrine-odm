@@ -92,6 +92,24 @@ class UnitOfWork
     }
 
     /**
+     * @return Storage
+     */
+    public function getStorage(): Storage
+    {
+        return $this->storageDriver;
+    }
+
+    /**
+     * @param object $object
+     * @return bool
+     */
+    public function contains($object): bool
+    {
+        $oid = spl_object_hash($object);
+        return isset($this->identifiers[$oid]);
+    }
+
+    /**
      * @param string $className
      * @param string|array $key
      * @return object

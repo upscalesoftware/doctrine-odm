@@ -6,7 +6,7 @@ namespace Upscale\Doctrine\ODM\Storage;
 use Doctrine\KeyValueStore\NotFoundException;
 use Doctrine\KeyValueStore\Storage\Storage;
 
-class MemoryStorage implements Storage, \JsonSerializable
+class MemoryStorage implements Storage, BulkStorage, \JsonSerializable
 {
     /**
      * @var array
@@ -80,6 +80,14 @@ class MemoryStorage implements Storage, \JsonSerializable
             throw new NotFoundException();
         }
         return $this->data[$storageName][$key];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function findAll($storageName): array
+    {
+        return $this->data[$storageName] ?? [];
     }
 
     /**
