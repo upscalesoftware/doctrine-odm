@@ -104,20 +104,26 @@ class UnitOfWork
         $class = $this->metadataFactory->getMetadataFor($className);
         $id = $this->idHandler->normalizeId($class, $key);
         $data = $this->storageDriver->find($class->storageName, $id);
-        return $this->createDocument($class, $id, $data);
+        return $this->createDocument($class, $data);
     }
 
     /**
      * @param DocumentMetadata $class
-     * @param string|array $id
      * @param array $data
      * @return object
      * @throws MappingException
      * @throws NotFoundException
      * @throws \ReflectionException
+     * @throws \InvalidArgumentException
      */
-    public function createDocument(DocumentMetadata $class, $id, array $data)
+    public function createDocument(DocumentMetadata $class, array $data)
     {
+        if ($class->embedded) {
+            throw new \InvalidArgumentException("Embedded document '{$class->name}' cannot be created as standalone.");
+        }
+        
+        $id = $this->idHandler->normalizeId($class, $this->unserializeData($class, $data));
+        
         $idHash = $this->idHandler->hash($id);
         if (isset($this->identityMap[$class->name][$idHash])) {
             return $this->identityMap[$class->name][$idHash];
