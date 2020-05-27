@@ -239,4 +239,4 @@ Pull Requests with fixes and improvements are welcome!
 
 Copyright © Upscale Software. All rights reserved.
 
-Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+Licensed under the [Apache License, Version 2.0](https://github.com/upscalesoftware/doctrine-odm/blob/master/LICENSE).
