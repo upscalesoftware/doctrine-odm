@@ -16,7 +16,7 @@ It is also heavily inspired by the Doctrine [CouchDB ODM](https://github.com/doc
 - Field data types:
   - Scalar types: `boolean`, `float`, `integer`, `string`, and `mixed` 
   - Date/time types: `date`, `time`, `datetime`
-- Unidirectional [associations](https://www.doctrine-project.org/projects/doctrine-orm/en/2.7/reference/unitofwork-associations.html): Many-to-One, Many-to-Many
+- Unidirectional and bidirectional [associations](https://www.doctrine-project.org/projects/doctrine-orm/en/2.7/reference/unitofwork-associations.html): Many-to-One, Many-to-Many
 - Cascade persistence of associations
 
 ## Installation
@@ -227,7 +227,6 @@ echo json_encode($storage, JSON_PRETTY_PRINT);
 
 - Only DocBlock metadata driver is currently implemented
 - Query by arbitrary criteria is not implemented yet
-- Bidirectional associations are currently not supported
 - One-to-One and One-to-Many associations are not supported
 - Lazy loading of associated documents is not implemented
 

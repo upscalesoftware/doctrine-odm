@@ -123,6 +123,9 @@ class DocumentMetadata extends ClassMetadata
         if (empty($mapping['targetDocument'])) {
             throw new \InvalidArgumentException('Association is missing target document.');
         }
+        if (isset($mapping['mappedBy']) && isset($mapping['inversedBy'])) {
+            throw new \InvalidArgumentException('Association must be either owning or inverse side.');
+        }
         if ($this->namespace && strpos($mapping['targetDocument'], '\\') === false) {
             $mapping['targetDocument'] = $this->namespace . '\\' . $mapping['targetDocument'];
         }
@@ -195,7 +198,16 @@ class DocumentMetadata extends ClassMetadata
      */
     public function getAssociationMappedByTargetField($assocName)
     {
-        return null;
+        return $this->associations[$assocName]['mappedBy'] ?? null;
+    }
+
+    /**
+     * @param string $assocName
+     * @return string|null
+     */
+    public function getAssociationInversedByTargetField($assocName)
+    {
+        return $this->associations[$assocName]['inversedBy'] ?? null;
     }
 
     /**

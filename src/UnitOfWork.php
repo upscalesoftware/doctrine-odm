@@ -175,16 +175,23 @@ class UnitOfWork
 
         foreach ($class->reflFields as $fieldName => $reflProperty) {
             $value = $data[$fieldName] ?? null;
-            if ($value !== null && $class->hasAssociation($fieldName)) {
+            if ($value !== null && $class->hasAssociation($fieldName) && !$class->isAssociationInverseSide($fieldName)) {
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
+                $assocFieldName = $class->getAssociationInversedByTargetField($fieldName);
                 if ($class->isSingleValuedAssociation($fieldName)) {
+                    if ($assocFieldName) {
+                        $value[$assocFieldName] = $object;
+                    }
                     $value = $assocClass->embedded
                         ? $this->hydrateDocument($assocClass, $value)
                         : $this->reconstitute($assocClassName, $this->unserializeData($assocClass, $value));
                 } else if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
                     foreach ($value as $assocData) {
+                        if ($assocFieldName) {
+                            $assocData[$assocFieldName] = $object;
+                        }
                         $items[] = $assocClass->embedded
                             ? $this->hydrateDocument($assocClass, $assocData)
                             : $this->reconstitute($assocClassName, $this->unserializeData($assocClass, $assocData));
@@ -230,6 +237,9 @@ class UnitOfWork
         foreach ($class->reflFields as $fieldName => $reflProperty) {
             $value = $reflProperty->getValue($object);
             if ($value !== null && $class->hasAssociation($fieldName)) {
+                if ($class->isAssociationInverseSide($fieldName)) {
+                    continue;
+                }
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
                 if ($class->isSingleValuedAssociation($fieldName)) {

@@ -13,4 +13,14 @@ class Reference
      * @var string
      */
     public $targetDocument;
+
+    /**
+     * @var string
+     */
+    public $mappedBy;
+    
+    /**
+     * @var string
+     */
+    public $inversedBy;
 }
