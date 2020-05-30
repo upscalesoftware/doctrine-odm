@@ -173,7 +173,8 @@ class UnitOfWork
         $data = $this->idConverter->unserialize($class, $data);
         $data = $this->unserializeData($class, $data);
 
-        foreach ($data as $fieldName => $value) {
+        foreach ($class->reflFields as $fieldName => $reflProperty) {
+            $value = $data[$fieldName] ?? null;
             if ($value !== null && $class->hasAssociation($fieldName)) {
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
@@ -191,9 +192,7 @@ class UnitOfWork
                     $value = new ArrayCollection($items);
                 }
             }
-            if (isset($class->reflFields[$fieldName])) {
-                $class->reflFields[$fieldName]->setValue($object, $value);
-            }
+            $reflProperty->setValue($object, $value);
         }
 
         return $object;
