@@ -180,21 +180,22 @@ class UnitOfWork
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
                 $assocFieldName = $class->getAssociationInversedByTargetField($fieldName);
                 if ($class->isSingleValuedAssociation($fieldName)) {
-                    if ($assocFieldName) {
-                        $value[$assocFieldName] = $object;
-                    }
                     $value = $assocClass->embedded
                         ? $this->hydrateDocument($assocClass, $value)
                         : $this->reconstitute($assocClassName, $this->unserializeData($assocClass, $value));
+                    if ($assocFieldName && $assocClass->isAssociationInverseSide($assocFieldName)) {
+                        $assocClass->reflFields[$assocFieldName]->setValue($value, $object);
+                    }
                 } else if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
                     foreach ($value as $assocData) {
-                        if ($assocFieldName) {
-                            $assocData[$assocFieldName] = $object;
-                        }
-                        $items[] = $assocClass->embedded
+                        $item = $assocClass->embedded
                             ? $this->hydrateDocument($assocClass, $assocData)
                             : $this->reconstitute($assocClassName, $this->unserializeData($assocClass, $assocData));
+                        if ($assocFieldName && $assocClass->isAssociationInverseSide($assocFieldName)) {
+                            $assocClass->reflFields[$assocFieldName]->setValue($item, $object);
+                        }
+                        $items[] = $item;
                     }
                     $value = new ArrayCollection($items);
                 }
