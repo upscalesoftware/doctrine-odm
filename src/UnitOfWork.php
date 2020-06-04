@@ -175,35 +175,47 @@ class UnitOfWork
 
         foreach ($class->reflFields as $fieldName => $reflProperty) {
             $value = $data[$fieldName] ?? null;
-            if ($value !== null && $class->hasAssociation($fieldName) && !$class->isAssociationInverseSide($fieldName)) {
+            if ($class->hasAssociation($fieldName) && !$class->isAssociationInverseSide($fieldName)) {
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
-                $assocFieldName = $class->getAssociationInversedByTargetField($fieldName);
-                if ($class->isSingleValuedAssociation($fieldName)) {
-                    $value = $assocClass->embedded
-                        ? $this->hydrateDocument($assocClass, $value)
-                        : $this->reconstitute($assocClassName, $this->unserializeData($assocClass, $value));
-                    if ($assocFieldName && $assocClass->isAssociationInverseSide($assocFieldName)) {
-                        $assocClass->reflFields[$assocFieldName]->setValue($value, $object);
-                    }
-                } else if ($class->isCollectionValuedAssociation($fieldName)) {
+                $assocName = $class->getAssociationInversedByTargetField($fieldName);
+                if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
-                    foreach ($value as $assocData) {
-                        $item = $assocClass->embedded
-                            ? $this->hydrateDocument($assocClass, $assocData)
-                            : $this->reconstitute($assocClassName, $this->unserializeData($assocClass, $assocData));
-                        if ($assocFieldName && $assocClass->isAssociationInverseSide($assocFieldName)) {
-                            $assocClass->reflFields[$assocFieldName]->setValue($item, $object);
-                        }
-                        $items[] = $item;
+                    foreach ($value ?: [] as $assocData) {
+                        $items[] = $this->hydrateAssociation($assocClass, $assocData, $assocName, $object);
                     }
                     $value = new ArrayCollection($items);
+                } else if ($class->isSingleValuedAssociation($fieldName) && $value !== null) {
+                    $value = $this->hydrateAssociation($assocClass, $value, $assocName, $object);
                 }
             }
             $reflProperty->setValue($object, $value);
         }
 
         return $object;
+    }
+
+    /**
+     * @param DocumentMetadata $class
+     * @param array $data
+     * @param string|null $assocName
+     * @param object $owner
+     * @return object
+     * @throws MappingException
+     * @throws NotFoundException
+     * @throws \ReflectionException
+     */
+    protected function hydrateAssociation(DocumentMetadata $class, array $data, ?string $assocName, $owner)
+    {
+        $document = $class->embedded
+            ? $this->hydrateDocument($class, $data)
+            : $this->reconstitute($class->getName(), $this->unserializeData($class, $data));
+        
+        if ($assocName && $class->isAssociationInverseSide($assocName)) {
+            $class->reflFields[$assocName]->setValue($document, $owner);
+        }
+        
+        return $document;
     }
 
     /**
@@ -232,35 +244,43 @@ class UnitOfWork
      * @param object $object
      * @return array
      */
-    private function getObjectSnapshot(DocumentMetadata $class, $object)
+    private function getObjectSnapshot(DocumentMetadata $class, $object): array
     {
         $result = [];
         foreach ($class->reflFields as $fieldName => $reflProperty) {
             $value = $reflProperty->getValue($object);
-            if ($value !== null && $class->hasAssociation($fieldName)) {
+            if ($class->hasAssociation($fieldName)) {
                 if ($class->isAssociationInverseSide($fieldName)) {
                     continue;
                 }
                 $assocClassName = $class->getAssociationTargetClass($fieldName);
                 $assocClass = $this->metadataFactory->getMetadataFor($assocClassName);
-                if ($class->isSingleValuedAssociation($fieldName)) {
-                    $value = $assocClass->embedded
-                        ? $this->getObjectSnapshot($assocClass, $value)
-                        : $this->serializeData($assocClass, $assocClass->getIdentifierValues($value));
-                } else if ($class->isCollectionValuedAssociation($fieldName)) {
+                if ($class->isCollectionValuedAssociation($fieldName)) {
                     $items = [];
-                    foreach ($value as $item) {
-                        $items[] = $assocClass->embedded
-                            ? $this->getObjectSnapshot($assocClass, $item)
-                            : $this->serializeData($assocClass, $assocClass->getIdentifierValues($item));
+                    foreach ($value ?: [] as $item) {
+                        $items[] = $this->getAssociationSnapshot($assocClass, $item);
                     }
                     $value = $items;
+                } else if ($class->isSingleValuedAssociation($fieldName) && $value !== null) {
+                    $value = $this->getAssociationSnapshot($assocClass, $value);
                 }
             }
             $result[$fieldName] = $value;
         }
         $result = $this->serializeData($class, $result);
         return $result;
+    }
+
+    /**
+     * @param DocumentMetadata $class
+     * @param object $object
+     * @return array
+     */
+    protected function getAssociationSnapshot(DocumentMetadata $class, $object): array
+    {
+        return $class->embedded
+            ? $this->getObjectSnapshot($class, $object)
+            : $this->serializeData($class, $class->getIdentifierValues($object));
     }
 
     /**
