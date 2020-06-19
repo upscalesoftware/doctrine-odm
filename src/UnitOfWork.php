@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Upscale\Doctrine\ODM;
 
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\KeyValueStore\Configuration;
 use Doctrine\KeyValueStore\Id\CompositeIdHandler;
 use Doctrine\KeyValueStore\Id\IdConverterStrategy;
@@ -184,7 +183,7 @@ class UnitOfWork
                     foreach ($value ?: [] as $assocData) {
                         $items[] = $this->hydrateAssociation($assocClass, $assocData, $assocName, $object);
                     }
-                    $value = new ArrayCollection($items);
+                    $value = $class->newAssociationCollection($fieldName, $items);
                 } else if ($class->isSingleValuedAssociation($fieldName) && $value !== null) {
                     $value = $this->hydrateAssociation($assocClass, $value, $assocName, $object);
                 }

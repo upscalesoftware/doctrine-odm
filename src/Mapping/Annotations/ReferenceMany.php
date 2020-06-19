@@ -9,5 +9,8 @@ namespace Upscale\Doctrine\ODM\Mapping\Annotations;
  */
 final class ReferenceMany extends Reference
 {
-
+    /**
+     * @var string
+     */
+    public $collectionClass;
 }

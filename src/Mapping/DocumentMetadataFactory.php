@@ -40,6 +40,9 @@ class DocumentMetadataFactory extends ClassMetadataFactory
         try {
             parent::doLoadMetadata($class, $parent, $rootEntityFound, $nonSuperclassParents);
         } catch (\InvalidArgumentException $e) {
+            if ($e->getMessage() != "Class {$class->name} has no identifier.") {
+                throw $e;
+            }
             if (!$class->embedded && !$class->identifier) {
                 throw new \InvalidArgumentException("Document '{$class->name}' must have identifier.");
             }

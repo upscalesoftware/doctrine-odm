@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Upscale\Doctrine\ODM\Mapping;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\KeyValueStore\Mapping\ClassMetadata;
 
 /**
@@ -99,7 +101,7 @@ class DocumentMetadata extends ClassMetadata
      * @param array $mapping
      * @throws \InvalidArgumentException
      */
-    public function mapManyToOne($mapping)
+    public function mapManyToOne(array $mapping)
     {
         $this->mapAssociation(self::MANY_TO_ONE, $mapping);
     }
@@ -108,8 +110,13 @@ class DocumentMetadata extends ClassMetadata
      * @param array $mapping
      * @throws \InvalidArgumentException
      */
-    public function mapManyToMany($mapping)
+    public function mapManyToMany(array $mapping)
     {
+        $mapping['collectionClass'] = $mapping['collectionClass'] ?? ArrayCollection::class;
+        $mapping['collectionClass'] = $this->resolveClassName($mapping['collectionClass']);
+        if (!is_a($mapping['collectionClass'], Collection::class, true)) {
+            throw new \InvalidArgumentException('Association references invalid collection class.');
+        }
         $this->mapAssociation(self::MANY_TO_MANY, $mapping);
     }
 
@@ -126,15 +133,25 @@ class DocumentMetadata extends ClassMetadata
         if (isset($mapping['mappedBy']) && isset($mapping['inversedBy'])) {
             throw new \InvalidArgumentException('Association must be either owning or inverse side.');
         }
-        if ($this->namespace && strpos($mapping['targetDocument'], '\\') === false) {
-            $mapping['targetDocument'] = $this->namespace . '\\' . $mapping['targetDocument'];
-        }
+        $mapping['targetDocument'] = $this->resolveClassName($mapping['targetDocument']);
         if (!class_exists($mapping['targetDocument'])) {
             throw new \InvalidArgumentException('Association references unknown target document.');
         }
         $mapping['sourceDocument'] = $this->name;
         $mapping['type'] = $type;
         $this->associations[$mapping['fieldName']] = $mapping;
+    }
+
+    /**
+     * @param string $name
+     * @return string
+     */
+    protected function resolveClassName(string $name): string
+    {
+        if ($name && $this->namespace && strpos($name, '\\') === false) {
+            $name = $this->namespace . '\\' . $name;
+        }
+        return $name;
     }
 
     /**
@@ -216,6 +233,30 @@ class DocumentMetadata extends ClassMetadata
     public function getAssociationTargetClass($assocName)
     {
         return $this->associations[$assocName]['targetDocument'] ?? null;
+    }
+
+    /**
+     * @param string $assocName
+     * @return string|null
+     */
+    public function getAssociationCollectionClass($assocName)
+    {
+        return $this->associations[$assocName]['collectionClass'] ?? null;
+    }
+
+    /**
+     * @param string $assocName
+     * @param array $items
+     * @return Collection
+     * @throws \InvalidArgumentException
+     */
+    public function newAssociationCollection($assocName, array $items = []): Collection
+    {
+        $collectionClass = $this->getAssociationCollectionClass($assocName);
+        if (!$collectionClass) {
+            throw new \InvalidArgumentException('Association is missing collection class.');
+        }
+        return new $collectionClass($items);
     }
 
     /**
